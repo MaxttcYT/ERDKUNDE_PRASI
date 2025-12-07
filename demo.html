@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Slide Video with Transition</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: black;
+            overflow: hidden;
+        }
+
+        video {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            object-fit: contain;
+            z-index: 99;
+        }
+
+        /* Tap zones */
+        .tap-zone {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            width: 50%;
+            z-index: 999;
+        }
+
+        #left-zone {
+            left: 0;
+        }
+
+        #right-zone {
+            right: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Loading screen -->
+    <div class="fixed top-0 left-0 z-[9999999] w-screen h-screen flex flex-col items-center justify-center bg-black"
+        id="loading-screen">
+        <span class="text-white text-3xl mb-4">LOADING...</span>
+        <span class="text-white text-xl" id="loading-percent">0%</span>
+    </div>
+
+    <span class="fixed top-5 right-10 text-white bg-black" id="slideCounter">1/20</span>
+
+    <!-- Video element -->
+    <video id="video" muted>
+        <source src="demo.mp4" type="video/mp4">
+    </video>
+
+    <!-- Tap zones -->
+    <div id="left-zone" class="tap-zone"></div>
+    <div id="right-zone" class="tap-zone"></div>
+
+    <script>
+        const video = document.getElementById('video');
+        const loadingScreen = document.getElementById('loading-screen');
+        const loadingPercent = document.getElementById('loading-percent');
+
+        // Define custom slide ranges [start, end] in seconds
+        const slides = [
+            [0, 0], // 1
+            [5, 7], // 2
+            [12, 14], // 3
+        ];
+
+        let slideIndex = 0;
+        let transitionTimeout;
+
+        video.controls = false;
+        video.pause();
+
+        video.addEventListener('loadedmetadata', () => {
+            showSlide(slideIndex);
+        });
+
+        // Loading screen
+        function updateLoading() {
+            if (video.buffered.length > 0) {
+                const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+                const duration = video.duration || 1;
+                const percent = Math.min(100, Math.floor((bufferedEnd / duration) * 100));
+                loadingPercent.textContent = percent + '%';
+            }
+        }
+
+        video.addEventListener('progress', updateLoading);
+        video.addEventListener('canplaythrough', () => {
+            loadingScreen.style.display = 'none';
+        });
+
+        function showSlide(index) {
+            document.getElementById("slideCounter").innerText = (index+1) + "/" + (slides.length) + "*"
+            clearTimeout(transitionTimeout);
+
+            // Clamp index
+            slideIndex = Math.max(0, Math.min(slides.length - 1, index));
+
+            const [start, end] = slides[slideIndex];
+            video.currentTime = start;
+            video.play();
+
+            // Stop at the end of the range
+            transitionTimeout = setTimeout(() => {
+                video.pause();
+                document.getElementById("slideCounter").innerText = (index+1) + "/" + (slides.length)
+            }, (end - start) * 1000 + 100); // slight buffer
+        }
+
+        // Tap zones
+        document.getElementById('right-zone').addEventListener('click', () => {
+            showSlide(slideIndex + 1);
+        });
+
+        document.getElementById('left-zone').addEventListener('click', () => {
+            showSlide(slideIndex - 1);
+        });
+
+        updateLoading();
+    </script>
+
+</body>
+
+</html>
